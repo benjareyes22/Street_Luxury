@@ -1,29 +1,66 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("streetLuxurySession");
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [perfil, setPerfil] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const [users, setUsers] = useState(() => {
-    const savedUsers = localStorage.getItem("streetLuxuryUsers");
-    return savedUsers ? JSON.parse(savedUsers) : [];
-  });
+  const cargarPerfil = async (userId) => {
+    const { data, error } = await supabase
+      .from("perfiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
 
-  const saveUsers = (newUsers) => {
-    setUsers(newUsers);
-    localStorage.setItem("streetLuxuryUsers", JSON.stringify(newUsers));
+    if (error) {
+      setPerfil(null);
+      return null;
+    }
+
+    setPerfil(data);
+    return data;
   };
 
-  const saveSession = (loggedUser) => {
-    setUser(loggedUser);
-    localStorage.setItem("streetLuxurySession", JSON.stringify(loggedUser));
-  };
+  useEffect(() => {
+    const iniciarSesion = async () => {
+      const { data } = await supabase.auth.getSession();
 
-  const register = ({ name, email, password, confirmPassword }) => {
+      const currentUser = data.session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        await cargarPerfil(currentUser.id);
+      }
+
+      setLoading(false);
+    };
+
+    iniciarSesion();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          await cargarPerfil(currentUser.id);
+        } else {
+          setPerfil(null);
+        }
+
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const register = async ({ name, email, password, confirmPassword }) => {
     if (!name || !email || !password || !confirmPassword) {
       return { ok: false, message: "Completa todos los campos." };
     }
@@ -39,81 +76,85 @@ export function AuthProvider({ children }) {
       return { ok: false, message: "Las contraseñas no coinciden." };
     }
 
-    const userExists = users.some(
-      (item) => item.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (userExists) {
-      return { ok: false, message: "Ya existe una cuenta con ese correo." };
-    }
-
-    const newUser = {
-      id: String(Date.now()),
-      name,
+    const { error } = await supabase.auth.signUp({
       email,
       password,
-    };
-
-    saveUsers([...users, newUser]);
-
-    saveSession({
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
+      options: {
+        data: {
+          nombre: name,
+        },
+      },
     });
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
 
     return { ok: true };
   };
 
-  const login = (email, password) => {
+  const login = async (email, password) => {
     if (!email || !password) {
       return { ok: false, message: "Ingresa tu correo y contraseña." };
     }
 
-    const foundUser = users.find(
-      (item) =>
-        item.email.toLowerCase() === email.toLowerCase() &&
-        item.password === password
-    );
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (!foundUser) {
-      return { ok: false, message: "Correo o contraseña incorrectos." };
+    if (error) {
+      return {
+        ok: false,
+        message:
+          "No se pudo iniciar sesión. Revisa tu correo, contraseña o confirma tu email.",
+      };
     }
 
-    saveSession({
-      id: foundUser.id,
-      name: foundUser.name,
-      email: foundUser.email,
-    });
+    setUser(data.user);
+    await cargarPerfil(data.user.id);
 
     return { ok: true };
   };
 
-  const recoverAccount = (email) => {
+  const recoverAccount = async (email) => {
     if (!email) {
       return { ok: false, message: "Ingresa tu correo." };
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+    if (error) {
+      return { ok: false, message: error.message };
     }
 
     return {
       ok: true,
       message:
-        "Si el correo está registrado, enviaremos instrucciones para recuperar la cuenta. Por ahora es una simulación visual.",
+        "Si el correo está registrado, recibirás instrucciones para recuperar tu cuenta.",
     };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem("streetLuxurySession");
+    setPerfil(null);
+  };
+  const updatePerfilLocal = (nuevoPerfil) => {
+  setPerfil(nuevoPerfil);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        perfil,
+        loading,
         login,
         register,
         recoverAccount,
         logout,
+        updatePerfilLocal,
       }}
     >
       {children}

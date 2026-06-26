@@ -40,8 +40,8 @@ function Home() {
         <article>Polerones</article>
         <article>Pantalones</article>
         <article>Chaquetas</article>
-        <article>Zapatulas</article>
-    
+        <article>Zapatillas</article>
+        
       </section>
 
       <section id="productos" className="productsSection">

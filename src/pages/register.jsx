@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/AuthContext";
 
 function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -14,17 +16,26 @@ function Register() {
     confirmPassword: "",
   });
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setMessage("");
+    setLoading(true);
 
-    const result = register(form);
+    const result = await register(form);
+
+    setLoading(false);
 
     if (!result.ok) {
       setMessage(result.message);
       return;
     }
 
-    navigate("/");
+    navigate("/login", {
+      state: {
+        successMessage:
+          "Cuenta creada correctamente. Ahora inicia sesión con tu correo y contraseña.",
+      },
+    });
   };
 
   return (
@@ -32,7 +43,7 @@ function Register() {
       <div className="authCard">
         <span className="authBadge">Crear cuenta</span>
         <h1>Registro</h1>
-        <p>Crea tu cuenta para guardar tus datos y comprar más rápido.</p>
+        <p>Crea tu cuenta para comprar más rápido y guardar tus datos.</p>
 
         {message && <div className="formMessage error">{message}</div>}
 
@@ -85,8 +96,8 @@ function Register() {
             />
           </label>
 
-          <button type="submit" className="primaryBtn authSubmit">
-            Crear cuenta
+          <button type="submit" className="primaryBtn authSubmit" disabled={loading}>
+            {loading ? "Creando cuenta..." : "Crear cuenta"}
           </button>
         </form>
 

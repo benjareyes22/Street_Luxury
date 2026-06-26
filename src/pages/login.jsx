@@ -1,23 +1,35 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(location.state?.successMessage || "");
+  const [messageType, setMessageType] = useState(
+    location.state?.successMessage ? "success" : "error"
+  );
+  const [loading, setLoading] = useState(false);
+
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const result = login(form.email, form.password);
+    setMessage("");
+    setLoading(true);
+
+    const result = await login(form.email, form.password);
+
+    setLoading(false);
 
     if (!result.ok) {
+      setMessageType("error");
       setMessage(result.message);
       return;
     }
@@ -30,9 +42,17 @@ function Login() {
       <div className="authCard">
         <span className="authBadge">Bienvenido</span>
         <h1>Iniciar sesión</h1>
-        <p>Ingresa a tu cuenta para revisar tus compras y favoritos.</p>
+        <p>Ingresa a tu cuenta para acceder a la tienda.</p>
 
-        {message && <div className="formMessage error">{message}</div>}
+        {message && (
+          <div
+            className={`formMessage ${
+              messageType === "success" ? "success" : "error"
+            }`}
+          >
+            {message}
+          </div>
+        )}
 
         <form className="authForm" onSubmit={handleSubmit}>
           <label>
@@ -59,8 +79,8 @@ function Login() {
             />
           </label>
 
-          <button type="submit" className="primaryBtn authSubmit">
-            Entrar
+          <button type="submit" className="primaryBtn authSubmit" disabled={loading}>
+            {loading ? "Ingresando..." : "Entrar"}
           </button>
         </form>
 
