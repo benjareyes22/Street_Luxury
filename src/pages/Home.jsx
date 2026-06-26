@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
 import logoLuxury from "../assets/logoluxury.jpeg";
 
 const WHATSAPP = "56933452696";
 
 function Home() {
+  const { perfil } = useAuth();
+  const esAdmin = perfil?.rol === "admin";
+
   const [productosDestacados, setProductosDestacados] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,6 +22,7 @@ function Home() {
         `
         id,
         nombre,
+        slug,
         descripcion,
         precio,
         precio_oferta,
@@ -54,13 +59,6 @@ function Home() {
     return `$${Number(price).toLocaleString("es-CL")}`;
   };
 
-  const whatsappProducto = (producto) => {
-    const texto = `Hola, quiero consultar por el producto: ${producto.nombre}`;
-    return `https://api.whatsapp.com/send?phone=${WHATSAPP}&text=${encodeURIComponent(
-      texto
-    )}`;
-  };
-
   const whatsappGeneral = () => {
     const texto = "Hola, quiero consultar por productos de Street Luxury";
     return `https://api.whatsapp.com/send?phone=${WHATSAPP}&text=${encodeURIComponent(
@@ -73,7 +71,9 @@ function Home() {
       <section id="inicio" className="hero">
         <div className="heroText">
           <span className="badge">Pura Moda Jefe</span>
+
           <h1>Ropa urbana con estilo premium</h1>
+
           <p>
             Encuentra poleras, polerones, pantalones, zapatillas y accesorios
             con diseño urbano, cómodo y moderno.
@@ -99,6 +99,7 @@ function Home() {
           <div className="shirtPreview brandPreview">
             <img src={logoLuxury} alt="Street Luxury" />
           </div>
+
           <p>Drop exclusivo</p>
           <h3>Street Luxury</h3>
         </div>
@@ -122,7 +123,19 @@ function Home() {
           <div className="emptyProducts">Cargando productos destacados...</div>
         ) : productosDestacados.length === 0 ? (
           <div className="emptyProducts">
-            Todavía no hay productos destacados. Márcalos desde el panel admin.
+            {esAdmin ? (
+              <>
+                Todavía no hay productos destacados.
+                <br />
+                Márcalos desde el panel admin.
+                <br />
+                <Link to="/admin" className="emptyAdminLink">
+                  Ir al panel admin
+                </Link>
+              </>
+            ) : (
+              "Pronto tendremos productos destacados disponibles."
+            )}
           </div>
         ) : (
           <div className="productsGrid">
@@ -161,22 +174,12 @@ function Home() {
                       : "Producto agotado"}
                   </p>
 
-                  <a
-                    href={
-                      producto.stock > 0
-                        ? whatsappProducto(producto)
-                        : undefined
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className={`buyBtn ${
-                      producto.stock <= 0 ? "disabledBtn" : ""
-                    }`}
+                  <Link
+                    to={`/producto/${producto.slug || producto.id}`}
+                    className="buyBtn"
                   >
-                    {producto.stock > 0
-                      ? "Consultar por WhatsApp"
-                      : "Sin stock"}
-                  </a>
+                    Ver producto
+                  </Link>
                 </div>
               </article>
             ))}

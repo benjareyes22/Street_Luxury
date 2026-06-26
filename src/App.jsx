@@ -8,6 +8,7 @@ import ForgotPassword from "./pages/ForgotPassword.jsx";
 import Admin from "./pages/Admin.jsx";
 import Profile from "./pages/Profile.jsx";
 import Products from "./pages/Products.jsx";
+import ProductDetail from "./pages/ProductDetail.jsx";
 import "./App.css";
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/productos" element={<Products />} />
         <Route path="/productos/:categoriaSlug" element={<Products />} />
+        <Route path="/producto/:productoSlug" element={<ProductDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Register />} />
         <Route path="/recuperar-cuenta" element={<ForgotPassword />} />

@@ -27,6 +27,7 @@ function Products() {
       `
       id,
       nombre,
+      slug,
       descripcion,
       precio,
       precio_oferta,
@@ -207,13 +208,12 @@ function Products() {
                       )}
                     </div>
 
-                    <button
-                      className="buyBtn"
-                      disabled={producto.stock <= 0}
-                      type="button"
-                    >
-                      {producto.stock > 0 ? "Consultar producto" : "Sin stock"}
-                    </button>
+                    <Link
+                        to={`/producto/${producto.slug || producto.id}`}
+                        className="buyBtn"
+                        >
+                        Ver producto
+                    </Link>
                   </div>
                 </article>
               ))}
