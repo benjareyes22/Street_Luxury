@@ -43,7 +43,7 @@ function Admin() {
       .order("id", { ascending: true });
 
     if (!error) {
-      setCategorias(data);
+      setCategorias(data || []);
     }
   };
 
@@ -70,7 +70,7 @@ function Admin() {
       .order("created_at", { ascending: false });
 
     if (!error) {
-      setProductos(data);
+      setProductos(data || []);
     }
   };
 
@@ -103,7 +103,7 @@ function Admin() {
 
     const nuevoProducto = {
       nombre: form.nombre,
-      slug: crearSlug(form.nombre),
+      slug: `${crearSlug(form.nombre)}-${Date.now()}`,
       descripcion: form.descripcion || null,
       categoria_id: Number(form.categoria_id),
       precio: Number(form.precio),
@@ -126,6 +126,26 @@ function Admin() {
     setMensaje("Producto guardado correctamente.");
     setForm(initialForm);
     cargarProductos();
+  };
+
+  const actualizarStock = async (producto, cantidad) => {
+    const nuevoStock = Math.max(0, Number(producto.stock) + cantidad);
+
+    const { error } = await supabase
+      .from("productos")
+      .update({ stock: nuevoStock })
+      .eq("id", producto.id);
+
+    if (error) {
+      setMensaje(error.message);
+      return;
+    }
+
+    setProductos((prev) =>
+      prev.map((item) =>
+        item.id === producto.id ? { ...item, stock: nuevoStock } : item
+      )
+    );
   };
 
   const eliminarProducto = async (id) => {
@@ -163,11 +183,9 @@ function Admin() {
   return (
     <section className="adminPage">
       <div className="adminHeader">
-        <div>
-          <span className="authBadge">Panel secreto</span>
-          <h1>Panel Admin</h1>
-          <p>Agrega productos reales para la tienda.</p>
-        </div>
+        <span className="authBadge">Panel secreto</span>
+        <h1>Panel Admin</h1>
+        <p>Agrega productos reales para la tienda.</p>
       </div>
 
       <div className="adminGrid">
@@ -296,7 +314,7 @@ function Admin() {
                   <th>Precio</th>
                   <th>Stock</th>
                   <th>Estado</th>
-                  <th></th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
 
@@ -306,8 +324,38 @@ function Admin() {
                     <td>{producto.nombre}</td>
                     <td>{producto.categorias?.nombre || "Sin categoría"}</td>
                     <td>${producto.precio.toLocaleString("es-CL")}</td>
-                    <td>{producto.stock}</td>
-                    <td>{producto.activo ? "Activo" : "Oculto"}</td>
+
+                    <td>
+                      <div className="stockControl">
+                        <button
+                          type="button"
+                          className="stockBtn stockMinus"
+                          onClick={() => actualizarStock(producto, -1)}
+                          disabled={producto.stock <= 0}
+                        >
+                          -
+                        </button>
+
+                        <strong>{producto.stock}</strong>
+
+                        <button
+                          type="button"
+                          className="stockBtn stockPlus"
+                          onClick={() => actualizarStock(producto, 1)}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </td>
+
+                    <td>
+                      {producto.stock <= 0 ? (
+                        <span className="stockBadge sinStock">Sin stock</span>
+                      ) : (
+                        <span className="stockBadge conStock">Activo</span>
+                      )}
+                    </td>
+
                     <td>
                       <button
                         className="deleteBtn"

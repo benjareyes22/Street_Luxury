@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import logoLuxury from "../assets/logoluxury.jpeg";
 
 function Navbar() {
   const { user, perfil, logout } = useAuth();
@@ -20,13 +21,14 @@ function Navbar() {
 
   return (
     <header className="navbar">
-      <Link className="logo logoButton" to="/">
-        Street Luxury
+      <Link className="logo logoButton logoWithImage" to="/">
+        <img src={logoLuxury} alt="Street Luxury" />
+        <span>Street Luxury</span>
       </Link>
 
       <nav>
         <Link to="/">Inicio</Link>
-        <a href="/#productos">Productos</a>
+        <Link to="/productos">Productos</Link>
         <a href="/#contacto">Contacto</a>
 
         {user ? (
